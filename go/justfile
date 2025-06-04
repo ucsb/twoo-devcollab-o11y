@@ -1,0 +1,6 @@
+set dotenv-load
+
+set shell := ["sh", "-c"]
+
+run:
+    go run .

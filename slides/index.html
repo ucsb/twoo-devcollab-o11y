@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+    <head>
+	<meta charset="utf-8">
+
+	<title>Observability4Developers -- UCSB ITS DevCollab 2025-06-04</title>
+
+	<meta name="description" content="Presentation slides for Obsevability4Developers 2025-06-04">
+	<meta name="author" content="tamsin woo">
+
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="node_modules/reveal.js/dist/reset.css">
+	<link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+	<link rel="stylesheet" href="node_modules/reveal.js/dist/theme/black.css" id="theme">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="node_modules/reveal.js/plugin/highlight/monokai.css">
+    </head>
+
+    <body>
+	<div class="reveal">
+	    <!-- Any section element inside of this container is displayed as a slide -->
+	    <div class="slides">
+		<section data-background="#09847A">
+		    <h2>Observability4Developers</h2>
+		    <p>
+			<small>UCSB ITS <em>DevCollab</em> - 2025-06-04</small>
+		    </p>
+		</section>
+
+                <section data-background="#09847A">
+		    <h2>by way of definition:</h2>
+                    <ol>
+		        <li class="fragment">"observability" (control theory): measure of how much knowledge of internal state of a system can be inferred from its outputs</li>
+                        <li class="fragment">assumption: systems will fail in ways we didn't anticipate</li>
+                        <li class="fragment">assumption: root causes can be in parts of the system we didn't expect</li>
+                        <li class="fragment">therefore: we want to be able to ask/answer open ended questions about our systems' internal state</li>
+		    </ol>
+		</section>
+
+                <section data-background="#9CBEBE" data-background-transition="zoom">
+                    <section>
+                        <h2>Three Pillars</h2>
+                        <ol>
+                            <li class="fragment">Logs</li>
+                            <li class="fragment">Metrics</li>
+                            <li class="fragment">Traces</li>
+		        </ol>
+                    </section>
+
+                    <section data-background="#EF5645">
+                        <h2>logs</h2>
+                        <p class="fragment">yes, just logs <span class="fragment">but make them structured (JSON, CLF)</span></p>
+                    </section>
+
+                    <section data-background="#047C91">
+                        <h2>metrics</h2>
+                    </section>
+
+                    <section data-background="#6D7D33">
+                        <h2>distributed traces</h2>
+                    </section>
+                </section>
+
+                <section data-background="#DCD6CC" data-background-transition="zoom">
+                    <section>
+                        <h2>isn't this just a buzzword for:</h2>
+                    </section>
+                    <section>
+                        <h2>isn't this just a buzzword for: monitoring?</h2>
+                    </section>
+                    <section>
+                        <h2>isn't this just a buzzword for: telemetry?</h2>
+                    </section>
+                    <section>
+                        <h2>really, this is a buzzword right?</h2>
+                    </section>
+                    <section data-background="#047C91" data-background-transition="zoom">
+                        <img src="ai-o11y.png"></img>
+                    </section>
+                </section>
+
+                <section data-background="#DCD6CC" data-background-transition="zoom">
+                    <h3>maybe... <p class="fragment">but, today...</p></h3>
+                    <ol>
+                        <li class="fragment">can you understand your applications state using only external tools?</li>
+                        <li class="fragment">are you able to answer open ended questions about how your application is behaving at runtime?</li>
+                        <li class="fragment">do you have the sense that you own your code in production?</li>
+		    </ol>
+                </section>
+
+                <section data-background="#047C91">
+                    <h3>what would it take to move closer to this reality?</h3>
+                    <ol>
+                        <li class="fragment">add (some) structured logs with build ids, function/source location</li>
+                        <li class="fragment">work together on tooling for end-to-end tracing; server<->application<->db/backend</li>
+                        <li class="fragment">develop a culture of shared responsibility for services</li>
+		    </ol>
+                </section>
+
+                <section data-background="#003660" data-background-transition="zoom">
+                    <section>
+		        <h2>OpenTelemetry</h2>
+                    </section>
+                    <section>
+                        <h2>Provides</h2>
+                        <ol>
+		            <li class="fragment">vendor neutral APIs & SDKs for three pillars</li>
+                            <li class="fragment">instrumentation libraries & auto-instrumentation for popular languages/frameworks/libraries</li>
+                            <li class="fragment">an ecosystem of tooling for gathering and analyzing telemetry data</li>
+		        </ol>
+                    </section>
+                    <section>
+                        <pre data-id="code-animation"><code class="hljs sh" data-trim data-line-numbers>
+# DotNet auto-instrumentation:
+# https://opentelemetry.io/docs/languages/dotnet/getting-started/
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Instrumentation.AspNetCore
+dotnet add package OpenTelemetry.Exporter.Console
+		        </code></pre>
+                        <pre data-id="code-animation"><code class="hljs cs" data-trim data-line-numbers>
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
+var builder = WebApplication.CreateBuilder(args);
+
+const string serviceName = "roll-dice";
+
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options
+        .SetResourceBuilder(
+            ResourceBuilder.CreateDefault()
+                .AddService(serviceName))
+        .AddConsoleExporter();
+});
+builder.Services.AddOpenTelemetry()
+      .ConfigureResource(resource => resource.AddService(serviceName))
+      .WithTracing(tracing => tracing
+          .AddAspNetCoreInstrumentation()
+          .AddConsoleExporter())
+      .WithMetrics(metrics => metrics
+          .AddAspNetCoreInstrumentation()
+          .AddConsoleExporter());
+
+var app = builder.Build();
+		        </code></pre>
+                    </section>
+		</section>
+
+                <section data-background="#DCD6CC" data-background-transition="zoom">
+                    <h2>Misc Resources</h2>
+                    <ul>
+                        <li><a href="https://learn.microsoft.com/en-us/training/modules/implement-observability-cloud-native-app-with-opentelemetry/?source=recommendations">Implement observability in a cloud-native .NET 8 application with OpenTelemetry</a></li>
+                        <li><a href="https://aws-otel.github.io/docs/getting-started/dotnet-sdk"></a>AWS Distro for OTel .NET SDK</li>
+                        <li><a href="https://www.honeycomb.io/wp-content/uploads/2018/12/Observability-for-Developers-ebook-Dec-7-2018-.pdf">Honeycomb's Observability for Developer's Ebook</a></li>
+                        <li><a href="https://learning.oreilly.com/library/view/observability-engineering/9781492076438/?sso_link=yes&sso_link_from=university-of-california-santa-barbara">Observability Engineering (O'Reilly book)</a></li>
+                    </ul>
+                </section>
+            </div>
+	</div>
+
+	<script src="node_modules/reveal.js/dist/reveal.js"></script>
+	<script src="node_modules/reveal.js/plugin/zoom/zoom.js"></script>
+	<script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+	<script src="node_modules/reveal.js/plugin/search/search.js"></script>
+	<script src="node_modules/reveal.js/plugin/markdown/markdown.js"></script>
+	<script src="node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+	<script>
+
+	 // Also available as an ES module, see:
+	 // https://revealjs.com/initialization/
+	 Reveal.initialize({
+	     controls: true,
+	     progress: true,
+	     center: true,
+	     hash: true,
+
+	     // Learn about plugins: https://revealjs.com/plugins/
+	     plugins: [ RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
+	 });
+
+	</script>
+    </body>
+</html>
